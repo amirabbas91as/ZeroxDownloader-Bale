@@ -1,33 +1,39 @@
 # -*- coding: utf-8 -*-
-"""Retry هوشمند: اگر Tor در دسترس بود مدار عوض کن، وگرنه ساده retry کن
-ControlPort را خودکار پیدا می‌کند (فایل cookie جستجو)"""
+"""تشخیص Tor - کش نتیجه تا هر ۳۰ ثانیه یک‌بار چک شود (سرعت بالاتر)"""
 import glob
 import os
 import socket
 import time
 
+_cache = {"ts": 0, "socks": False, "cookie": None}
+
 
 def _find_tor():
-    """Tor SOCKS5 و ControlPort را پیدا کن"""
+    """Tor SOCKS5 و ControlPort - با کش ۳۰ ثانیه‌ای"""
+    now = time.time()
+    if now - _cache["ts"] < 30:
+        return _cache["socks"], _cache["cookie"]
+
     socks = False
-    control = None
-    # SOCKS5 زنده؟
+    cookie = None
     try:
         s = socket.create_connection(("127.0.0.1", 9050), timeout=2)
         s.close()
         socks = True
     except OSError:
         pass
-    # cookie file جستجو (مسیرهای رایج)
+
     for pattern in [
         "/var/lib/tor/nekate/control_auth_cookie",
         "/tmp/tor_data/control_auth_cookie",
         "/var/lib/tor/control_auth_cookie",
     ] + glob.glob("/tmp/tor_data*/control_auth_cookie"):
         if os.path.exists(pattern):
-            control = pattern
+            cookie = pattern
             break
-    return socks, control
+
+    _cache.update(ts=now, socks=socks, cookie=cookie)
+    return socks, cookie
 
 
 def _tor_alive():
@@ -36,7 +42,7 @@ def _tor_alive():
 
 
 def rotate_tor_circuit():
-    """سیگنال NEWNYM به Tor ControlPort - مدار خروجی جدید می‌سازد"""
+    """سیگنال NEWNYM - مدار خروجی جدید Tor"""
     socks, cookie_path = _find_tor()
     if not socks or not cookie_path:
         return False
@@ -50,7 +56,8 @@ def rotate_tor_circuit():
         time.sleep(0.3)
         s.recv(256)
         s.close()
-        time.sleep(8)  # صبر برای مدار جدید
+        time.sleep(8)
+        _cache["ts"] = 0  # کش را باطل کن
         return True
     except Exception as e:
         print(f"tor rotate failed: {e}")
@@ -58,7 +65,7 @@ def rotate_tor_circuit():
 
 
 def retry_with_rotation(func, *args, max_retries=4, **kwargs):
-    """اجرای دانلود - اگر بلاک شد و Tor بود مدار عوض کن، وگرنه فقط صبر کن"""
+    """دانلود با retry - اگر Tor بود مدار بچرخان، وگرنه صبر ساده"""
     last_err = None
     has_tor = _tor_alive()
     for attempt in range(max_retries):
