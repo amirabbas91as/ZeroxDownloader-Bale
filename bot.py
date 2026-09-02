@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import re
+import socket
 import tempfile
 import time
 import uuid
@@ -65,6 +66,16 @@ def extract_url(text: str):
 
 # ---------------------------------------------------------------- دانلود
 
+def _tor_alive():
+    """چک کن Tor روی 127.0.0.1:9050 واقعا در دسترس است"""
+    try:
+        s = socket.create_connection(("127.0.0.1", 9050), timeout=2)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
 def yt_common_opts():
     opts = {
         "noplaylist": True,
@@ -74,8 +85,8 @@ def yt_common_opts():
         "retries": 5,
         "concurrent_fragment_downloads": 4,
     }
-    # Tor proxy برای دور زدن بلاک یوتیوب روی IP دیتاسنتر
-    if os.path.exists("/var/lib/tor/nekate") or TOR_ENABLED:
+    # Tor فقط وقتی استفاده شود که واقعا در دسترس باشد (روی Railway نصب نیست)
+    if TOR_ENABLED and _tor_alive():
         opts["proxy"] = "socks5h://127.0.0.1:9050"
     # پشتیبانی از cookies برای دور زدن بات‌چک یوتیوب روی IP سرور
     cookies_file = os.environ.get("YOUTUBE_COOKIES", "cookies.txt")
