@@ -1,0 +1,10 @@
+SocksPort 9050
+ControlPort 9051
+DataDirectory /tmp/tor_data
+CookieAuthentication 1
+ExitNodes {us},{nl},{de},{fr},{tr}
+StrictNodes 0
+MaxCircuitDirtiness 300
+NumEntryGuards 3
+UseBridges 0
+Log notice file /tmp/tor_data/tor.log

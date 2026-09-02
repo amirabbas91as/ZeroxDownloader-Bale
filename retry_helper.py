@@ -1,25 +1,46 @@
 # -*- coding: utf-8 -*-
-"""Retry هوشمند: اگر Tor در دسترس بود مدار عوض کن، وگرنه ساده retry کن"""
+"""Retry هوشمند: اگر Tor در دسترس بود مدار عوض کن، وگرنه ساده retry کن
+ControlPort را خودکار پیدا می‌کند (فایل cookie جستجو)"""
+import glob
 import os
 import socket
 import time
 
 
-def _tor_alive():
+def _find_tor():
+    """Tor SOCKS5 و ControlPort را پیدا کن"""
+    socks = False
+    control = None
+    # SOCKS5 زنده؟
     try:
-        s = socket.create_connection(("127.0.0.1", 9051), timeout=2)
+        s = socket.create_connection(("127.0.0.1", 9050), timeout=2)
         s.close()
-        return True
+        socks = True
     except OSError:
-        return False
+        pass
+    # cookie file جستجو (مسیرهای رایج)
+    for pattern in [
+        "/var/lib/tor/nekate/control_auth_cookie",
+        "/tmp/tor_data/control_auth_cookie",
+        "/var/lib/tor/control_auth_cookie",
+    ] + glob.glob("/tmp/tor_data*/control_auth_cookie"):
+        if os.path.exists(pattern):
+            control = pattern
+            break
+    return socks, control
+
+
+def _tor_alive():
+    socks, _ = _find_tor()
+    return socks
 
 
 def rotate_tor_circuit():
     """سیگنال NEWNYM به Tor ControlPort - مدار خروجی جدید می‌سازد"""
+    socks, cookie_path = _find_tor()
+    if not socks or not cookie_path:
+        return False
     try:
-        cookie_path = "/var/lib/tor/nekate/control_auth_cookie"
-        if not os.path.exists(cookie_path):
-            return False
         cookie = open(cookie_path, "rb").read()
         s = socket.create_connection(("127.0.0.1", 9051), timeout=10)
         s.sendall(b"AUTHENTICATE " + cookie.hex().encode() + b"\r\n")
