@@ -2,9 +2,13 @@ SocksPort 9050
 ControlPort 9051
 DataDirectory /tmp/tor_data
 CookieAuthentication 1
-ExitNodes {us},{nl},{de},{fr},{tr}
-StrictNodes 0
+
+# بریج‌های obfs4 — دور زدن بلاک رله‌های Tor
+UseBridges 1
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+Bridge obfs4 45.32.152.154:29160 BD4A155DAFD7091D319AC2BE0289114E649EB3AB cert=byhnAehDGSgTGzs6VwmbMFdtkawjfYI1abr39R7LtRkzcZlxNi0eLf5jMAEfC2/B1ndyeA iat-mode=0
+Bridge obfs4 217.252.205.139:443 390FE30FB48637087436C4D36DA769C68BDEBD6C cert=0mVxBL5ir+Ev8/axEH0AR/kknmNq7d/sJ8bkf9G/Na6ELznKPE1yDaH8DoFlhUsypJUFVg iat-mode=0
+
 MaxCircuitDirtiness 300
 NumEntryGuards 3
-UseBridges 0
 Log notice file /tmp/tor_data/tor.log

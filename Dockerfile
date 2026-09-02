@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
-# Tor + وابستگی‌های سیستمی
+# Tor + obfs4proxy + ffmpeg
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tor ffmpeg && \
+    apt-get install -y --no-install-recommends tor ffmpeg obfs4proxy && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# torrc را جای استاندارد کپی کن
+# torrc با بریج‌های obfs4
 RUN mkdir -p /tmp/tor_data && cp torrc /etc/tor/torrc-zerox
 
 EXPOSE 8080
