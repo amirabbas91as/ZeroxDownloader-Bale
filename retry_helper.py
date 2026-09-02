@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""تشخیص Tor - کش نتیجه تا هر ۳۰ ثانیه یک‌بار چک شود (سرعت بالاتر)"""
+"""حل نهایی گیر کردن: وقتی بلاک شد چند مدار پشت هم بچرخان (تا ۸ بار)
++ لاگ واضح‌تر که کاربر بفهمد چی می‌شود"""
 import glob
 import os
 import socket
@@ -9,7 +10,6 @@ _cache = {"ts": 0, "socks": False, "cookie": None}
 
 
 def _find_tor():
-    """Tor SOCKS5 و ControlPort - با کش ۳۰ ثانیه‌ای"""
     now = time.time()
     if now - _cache["ts"] < 30:
         return _cache["socks"], _cache["cookie"]
@@ -42,7 +42,6 @@ def _tor_alive():
 
 
 def rotate_tor_circuit():
-    """سیگنال NEWNYM - مدار خروجی جدید Tor"""
     socks, cookie_path = _find_tor()
     if not socks or not cookie_path:
         return False
@@ -56,16 +55,16 @@ def rotate_tor_circuit():
         time.sleep(0.3)
         s.recv(256)
         s.close()
-        time.sleep(8)
-        _cache["ts"] = 0  # کش را باطل کن
+        time.sleep(6)
+        _cache["ts"] = 0
         return True
     except Exception as e:
         print(f"tor rotate failed: {e}")
         return False
 
 
-def retry_with_rotation(func, *args, max_retries=4, **kwargs):
-    """دانلود با retry - اگر Tor بود مدار بچرخان، وگرنه صبر ساده"""
+def retry_with_rotation(func, *args, max_retries=8, **kwargs):
+    """دانلود با چرخش مدار - تا ۸ بار (مدارهای Tor زیاد بلاک‌اند)"""
     last_err = None
     has_tor = _tor_alive()
     for attempt in range(max_retries):
@@ -75,14 +74,15 @@ def retry_with_rotation(func, *args, max_retries=4, **kwargs):
             err = str(e)
             retryable = ("Sign in to confirm" in err or
                          "needs to be reloaded" in err or
-                         "Requested format" in err)
+                         "Requested format" in err or
+                         "Video unavailable" in err)
             if not retryable or attempt == max_retries - 1:
                 raise
             last_err = e
             if has_tor:
-                print(f"  blocked, rotating Tor circuit ({attempt+1}/{max_retries})...")
+                print(f"  blocked, rotating circuit ({attempt+1}/{max_retries})...")
                 rotate_tor_circuit()
             else:
-                print(f"  blocked, simple retry ({attempt+1}/{max_retries})...")
+                print(f"  blocked, retry ({attempt+1}/{max_retries})...")
                 time.sleep(10)
     raise last_err
