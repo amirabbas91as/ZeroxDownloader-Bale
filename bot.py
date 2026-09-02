@@ -24,7 +24,7 @@ from telegram.ext import (
 import yt_dlp
 
 from bale_compat import create_bale_app
-from retry_helper import retry_download
+from retry_helper import retry_with_rotation as retry_download
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO
