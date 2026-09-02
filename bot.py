@@ -590,6 +590,12 @@ def main():
     token = os.environ.get("BOT_TOKEN")
     if not token:
         raise SystemExit("متغیر BOT_TOKEN تنظیم نشده است")
+    # Tor را خودکار بالا بیاور (اگر نصب باشد) — دیگر وابسته به start.sh نیستیم
+    try:
+        from tor_manager import ensure_tor_running
+        ensure_tor_running()
+    except Exception as e:
+        print(f"[tor] manager failed: {e} — continuing without")
     builder = create_bale_app()
     builder.token(token)
     builder.concurrent_updates(True)
