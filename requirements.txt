@@ -1,0 +1,5 @@
+python-telegram-bot>=21.0
+yt-dlp>=2024.8
+mutagen>=1.47
+requests>=2.31
+pysocks>=1.7
